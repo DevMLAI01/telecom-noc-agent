@@ -1,0 +1,43 @@
+# =============================================================================
+# .gitignore — Git Exclusion Rules
+# =============================================================================
+
+# Environment variables — NEVER commit API keys
+.env
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environment directories
+venv/
+.venv/
+env/
+.env/
+
+# ChromaDB local vector store — regenerated on first run
+chroma_db/
+
+# IDE and editor files
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Test and coverage reports
+.pytest_cache/
+htmlcov/
+.coverage
