@@ -17,8 +17,15 @@ venv/
 env/
 .env/
 
-# ChromaDB local vector store — regenerated on first run
+# ChromaDB local vector store (legacy — replaced by DynamoDB)
 chroma_db/
+
+# AWS SAM build artifacts
+.aws-sam/
+samconfig.toml
+
+# Docker build artifacts
+*.tar
 
 # IDE and editor files
 .vscode/

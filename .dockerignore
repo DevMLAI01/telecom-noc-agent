@@ -1,0 +1,49 @@
+# =============================================================================
+# .dockerignore — Exclude files from Docker build context
+# =============================================================================
+# Keeps the build context small and prevents secrets from entering the image.
+
+# Virtual environment — dependencies are installed fresh via pip in the image
+.venv/
+venv/
+env/
+
+# Git history — not needed in the image
+.git/
+.gitignore
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local vector DB (legacy — replaced by DynamoDB)
+chroma_db/
+
+# Secrets — never bake credentials into the image
+.env
+.env.*
+
+# CLI entry point — Lambda uses lambda_handler.py instead
+main.py
+
+# One-time scripts — not needed at runtime
+scripts/
+
+# Documentation
+*.md
+README*
+
+# IDE and OS files
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
