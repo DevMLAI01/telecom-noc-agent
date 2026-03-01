@@ -55,9 +55,10 @@ To add new SOPs or alarm scenarios: edit the JSON files and re-run the seed scri
 
 ```
 API Gateway (POST /alarm)
-      │
+      │   https://yjhndtxwxh.execute-api.us-east-1.amazonaws.com/alarm
       ▼
-AWS Lambda  ←── lambda_handler.py (entry point)
+AWS Lambda  ←── lambda_handler.py (telecom-noc-agent, us-east-1)
+   1 GiB RAM | 300s timeout | ECR image (linux/amd64)
       │
       ├── DynamoDB: telecom-noc-sops       ← SOPs (replaces local DUMMY_SOPS)
       ├── DynamoDB: telecom-noc-telemetry  ← Alarm data (replaces mock dict)
@@ -65,7 +66,33 @@ AWS Lambda  ←── lambda_handler.py (entry point)
       └── LangGraph StateGraph             ← Unchanged core workflow
 ```
 
+**Live endpoint:**
+```bash
+curl -X POST https://yjhndtxwxh.execute-api.us-east-1.amazonaws.com/alarm \
+  -H "Content-Type: application/json" \
+  -d '{"alarm_id": "ALARM-001", "error_message": ""}'
+```
+
 **Cost:** DynamoDB free tier is permanent (25 GB, 25M reads/month). Lambda free tier covers all dev/testing.
+
+### Deploying a new version
+```bash
+# 1. Rebuild and push to ECR (linux/amd64, single-arch — required for Lambda)
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin 585707316150.dkr.ecr.us-east-1.amazonaws.com
+
+docker buildx build --platform linux/amd64 --provenance=false \
+  -t 585707316150.dkr.ecr.us-east-1.amazonaws.com/telecom-noc-agent:latest \
+  --push .
+
+# 2. Update Lambda to pull the new image
+aws lambda update-function-code \
+  --function-name telecom-noc-agent \
+  --image-uri 585707316150.dkr.ecr.us-east-1.amazonaws.com/telecom-noc-agent:latest
+```
+
+> **Important:** Always use `--provenance=false` when building for Lambda. Docker Desktop on Windows
+> creates multi-arch manifest lists by default, which Lambda rejects.
 
 ## LangGraph Node Execution Flow
 
