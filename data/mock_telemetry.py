@@ -22,8 +22,20 @@
 # =============================================================================
 
 import os
+from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError
+
+
+def _decimals_to_native(obj):
+    """Recursively convert DynamoDB Decimal types to native Python int/float."""
+    if isinstance(obj, Decimal):
+        return int(obj) if obj % 1 == 0 else float(obj)
+    if isinstance(obj, dict):
+        return {k: _decimals_to_native(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_decimals_to_native(i) for i in obj]
+    return obj
 
 # ---------------------------------------------------------------------------
 # Configuration — read from environment variables
@@ -65,10 +77,11 @@ def _load_telemetry_from_dynamodb() -> dict:
             items.extend(response.get("Items", []))
 
         # Build cache dict: {alarm_id: telemetry_metrics}
+        # Convert Decimals → native int/float so json.dumps works in Node 3
         _telemetry_cache = {}
         for item in items:
             alarm_id = item.get("alarm_id")
-            telemetry = item.get("telemetry", {})
+            telemetry = _decimals_to_native(item.get("telemetry", {}))
             if alarm_id:
                 _telemetry_cache[alarm_id] = telemetry
 

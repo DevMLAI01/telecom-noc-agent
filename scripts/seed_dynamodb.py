@@ -17,8 +17,15 @@ import json
 import os
 import sys
 import time
+from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError
+
+
+def _load_json_with_decimals(path: str):
+    """Load JSON file converting all floats to Decimal (required by DynamoDB)."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f, parse_float=Decimal)
 
 # ---------------------------------------------------------------------------
 # Configuration — reads from environment with sensible defaults
@@ -60,8 +67,7 @@ def create_table_if_not_exists(dynamodb, table_name: str, key_name: str) -> None
 def seed_sops(dynamodb_resource, table_name: str) -> None:
     """Loads sops.json and writes each SOP as a DynamoDB item."""
     print(f"\n   [Seed] Loading SOPs from {SOPS_FILE}...")
-    with open(SOPS_FILE, "r", encoding="utf-8") as f:
-        sops = json.load(f)
+    sops = _load_json_with_decimals(SOPS_FILE)
 
     table = dynamodb_resource.Table(table_name)
 
@@ -84,8 +90,7 @@ def seed_sops(dynamodb_resource, table_name: str) -> None:
 def seed_telemetry(dynamodb_resource, table_name: str) -> None:
     """Loads mock_telemetry.json and writes each alarm scenario as a DynamoDB item."""
     print(f"\n   [Seed] Loading telemetry from {TELEMETRY_FILE}...")
-    with open(TELEMETRY_FILE, "r", encoding="utf-8") as f:
-        telemetry = json.load(f)
+    telemetry = _load_json_with_decimals(TELEMETRY_FILE)
 
     table = dynamodb_resource.Table(table_name)
 
