@@ -9,9 +9,7 @@ An enterprise-grade, production-deployed Agentic RAG system built with **LangGra
 The agent is **deployed and running on AWS**. You can trigger it right now — no setup required:
 
 ```bash
-curl -X POST https://yjhndtxwxh.execute-api.us-east-1.amazonaws.com/alarm \
-  -H "Content-Type: application/json" \
-  -d '{"alarm_id": "ALARM-001", "error_message": ""}'
+curl.exe -X POST https://yjhndtxwxh.execute-api.us-east-1.amazonaws.com/alarm -H "Content-Type: application/json" -d "{\"alarm_id\": \"ALARM-001\", \"error_message\": \"\"}"
 ```
 
 Try all four alarm scenarios:
