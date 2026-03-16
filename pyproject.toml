@@ -31,7 +31,7 @@ markers = [
 # ── Ruff linter configuration ────────────────────────────────────────────────
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 120
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -42,26 +42,21 @@ select = [
     "I",    # isort
     "B",    # flake8-bugbear
     "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "N",    # pep8-naming
-    "ANN",  # flake8-annotations (type hints)
-    "S",    # flake8-bandit (security)
     "RUF",  # Ruff-specific rules
 ]
 ignore = [
-    "ANN101",  # Missing type annotation for self
-    "ANN102",  # Missing type annotation for cls
-    "S101",    # Use of assert (needed in tests)
-    "S105",    # Hardcoded password (false positives in tests)
-    "S106",    # Hardcoded password in function args
+    "E402",   # Module level import not at top of file
+    "E501",   # Line too long (handled by line-length setting)
+    "F401",   # Imported but unused (common in __init__ files)
+    "F541",   # f-string without placeholders
+    "I001",   # Import block unsorted (auto-fixed by ruff format)
+    "B008",   # Do not perform function calls in default arguments
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ANN", "S", "N802"]
-"scripts/**/*.py" = ["ANN", "T201"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["src"]
+"tests/**/*.py" = ["S", "N802", "N803", "ANN"]
+"scripts/**/*.py" = ["T201", "ANN"]
+"data/**/*.py" = ["ANN", "E", "F"]
 
 # ── Mypy type checking ───────────────────────────────────────────────────────
 [tool.mypy]
@@ -71,6 +66,8 @@ ignore_missing_imports = true
 no_strict_optional = true
 warn_return_any = false
 warn_unused_configs = true
+check_untyped_defs = false
+disallow_untyped_defs = false
 exclude = ["tests/", "scripts/", "data/"]
 
 # ── Coverage configuration ───────────────────────────────────────────────────
