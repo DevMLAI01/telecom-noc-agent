@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
+
 def _api_gateway_event(body: dict, method: str = "POST") -> dict:
     """Simulate an API Gateway HTTP event payload."""
     return {
@@ -20,6 +21,7 @@ def _api_gateway_event(body: dict, method: str = "POST") -> dict:
         "body": json.dumps(body),
         "isBase64Encoded": False,
     }
+
 
 def _lambda_context():
     ctx = MagicMock()
@@ -42,10 +44,11 @@ SUCCESSFUL_GRAPH_RESULT = {
 
 # ── Lambda handler tests ─────────────────────────────────────────────────────
 
-class TestLambdaHandler:
 
+class TestLambdaHandler:
     def test_valid_alarm_returns_200(self):
         from lambda_handler import lambda_handler
+
         event = _api_gateway_event({"alarm_id": "ALARM-001"})
 
         with patch("lambda_handler.build_graph") as mock_build:
@@ -61,6 +64,7 @@ class TestLambdaHandler:
 
     def test_missing_alarm_id_returns_400(self):
         from lambda_handler import lambda_handler
+
         event = _api_gateway_event({})  # No alarm_id
 
         response = lambda_handler(event, _lambda_context())
@@ -71,6 +75,7 @@ class TestLambdaHandler:
 
     def test_response_contains_resolution_ticket(self):
         from lambda_handler import lambda_handler
+
         event = _api_gateway_event({"alarm_id": "ALARM-002"})
 
         with patch("lambda_handler.build_graph") as mock_build:
@@ -85,6 +90,7 @@ class TestLambdaHandler:
 
     def test_graph_exception_returns_500(self):
         from lambda_handler import lambda_handler
+
         event = _api_gateway_event({"alarm_id": "ALARM-001"})
 
         with patch("lambda_handler.build_graph") as mock_build:
@@ -100,6 +106,7 @@ class TestLambdaHandler:
 
     def test_response_includes_cors_headers(self):
         from lambda_handler import lambda_handler
+
         event = _api_gateway_event({"alarm_id": "ALARM-001"})
 
         with patch("lambda_handler.build_graph") as mock_build:
@@ -114,6 +121,7 @@ class TestLambdaHandler:
 
     def test_malformed_json_body_returns_400(self):
         from lambda_handler import lambda_handler
+
         event = {
             "httpMethod": "POST",
             "path": "/alarm",
@@ -125,6 +133,7 @@ class TestLambdaHandler:
 
     def test_graph_is_invoked_with_correct_initial_state(self):
         from lambda_handler import lambda_handler
+
         event = _api_gateway_event({"alarm_id": "ALARM-003"})
 
         with patch("lambda_handler.build_graph") as mock_build:

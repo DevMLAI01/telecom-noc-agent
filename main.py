@@ -136,9 +136,9 @@ def print_final_report(final_state: NOCAgentState, elapsed_seconds: float):
         final_state:     The complete NOCAgentState after graph execution.
         elapsed_seconds: Total wall-clock time for the workflow run.
     """
-    print("\n\n" + "█"*65)
-    print("█" + " "*20 + "FINAL AGENT OUTPUT" + " "*25 + "█")
-    print("█"*65)
+    print("\n\n" + "█" * 65)
+    print("█" + " " * 20 + "FINAL AGENT OUTPUT" + " " * 25 + "█")
+    print("█" * 65)
 
     is_safe = final_state.get("is_safe_to_execute", False)
     iteration_count = final_state.get("iteration_count", 0)
@@ -154,28 +154,36 @@ def print_final_report(final_state: NOCAgentState, elapsed_seconds: float):
         print(f"   {final_state.get('safety_feedback', 'No feedback available.')}")
 
     # Print the final resolution ticket
-    print("\n" + "─"*65)
+    print("\n" + "─" * 65)
     print("📄 RESOLUTION TICKET:")
-    print("─"*65)
+    print("─" * 65)
     print(final_state.get("proposed_resolution", "No resolution generated."))
 
     # Print telemetry summary
-    print("\n" + "─"*65)
+    print("\n" + "─" * 65)
     print("📊 TELEMETRY SUMMARY:")
-    print("─"*65)
+    print("─" * 65)
     telemetry = final_state.get("live_telemetry", {})
-    key_fields = ["device", "location", "severity", "error_type",
-                  "upstream_snr_db", "t3_timeout_count_last_hour",
-                  "rx_power_dbm", "flap_count_last_hour",
-                  "current_traffic_gbps", "affected_modems_count",
-                  "affected_subscribers"]
+    key_fields = [
+        "device",
+        "location",
+        "severity",
+        "error_type",
+        "upstream_snr_db",
+        "t3_timeout_count_last_hour",
+        "rx_power_dbm",
+        "flap_count_last_hour",
+        "current_traffic_gbps",
+        "affected_modems_count",
+        "affected_subscribers",
+    ]
     for key in key_fields:
         if key in telemetry:
             print(f"   {key:35s}: {telemetry[key]}")
 
-    print("\n" + "─"*65)
+    print("\n" + "─" * 65)
     print(f"✅ Agent workflow completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("─"*65 + "\n")
+    print("─" * 65 + "\n")
 
 
 def main():
@@ -187,14 +195,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="Autonomous Telecom NOC Resolution Agent",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=f"Available alarm IDs: {', '.join(ALARM_SCENARIOS.keys())}"
+        epilog=f"Available alarm IDs: {', '.join(ALARM_SCENARIOS.keys())}",
     )
     parser.add_argument(
         "--alarm",
         type=str,
         default="ALARM-001",
         choices=list(ALARM_SCENARIOS.keys()),
-        help="The alarm ID to investigate (default: ALARM-001)"
+        help="The alarm ID to investigate (default: ALARM-001)",
     )
     args = parser.parse_args()
 
@@ -224,9 +232,9 @@ def main():
     # -------------------------------------------------------------------------
     # Execute the agentic workflow
     # -------------------------------------------------------------------------
-    print(f"\n{'='*65}")
+    print(f"\n{'=' * 65}")
     print("🔄 STARTING AGENTIC WORKFLOW — ENTERING LANGGRAPH STATE MACHINE")
-    print(f"{'='*65}")
+    print(f"{'=' * 65}")
 
     start_time = datetime.now()
 

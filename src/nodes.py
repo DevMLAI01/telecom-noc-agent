@@ -28,6 +28,7 @@ from src.retriever import retrieve_sops
 # a structured JSON response that maps cleanly to our state fields.
 # =============================================================================
 
+
 class SafetyAuditResult(BaseModel):
     """
     Structured output schema for the NOC Safety Critic (Node 4).
@@ -35,6 +36,7 @@ class SafetyAuditResult(BaseModel):
     The LLM is constrained to return ONLY these fields, ensuring deterministic
     downstream routing logic without fragile regex-based parsing.
     """
+
     is_safe: bool = Field(
         description=(
             "True if EVERY step in the proposed resolution is explicitly documented "
@@ -55,6 +57,7 @@ class SafetyAuditResult(BaseModel):
 # NODE 1: Telemetry Checker
 # =============================================================================
 
+
 def check_network(state: NOCAgentState) -> dict:
     """
     Node 1 — Telemetry Checker: Retrieves live network vitals for the alarm.
@@ -74,9 +77,9 @@ def check_network(state: NOCAgentState) -> dict:
     Returns:
         Partial state dict with `live_telemetry` populated.
     """
-    print("\n" + "="*65)
+    print("\n" + "=" * 65)
     print("🔍  NODE 1: TELEMETRY CHECKER — Querying Live Network Data")
-    print("="*65)
+    print("=" * 65)
     print(f"   Alarm ID    : {state['alarm_id']}")
     print(f"   Error Desc  : {state['error_message']}")
 
@@ -93,6 +96,7 @@ def check_network(state: NOCAgentState) -> dict:
 # =============================================================================
 # NODE 2: Document Retriever
 # =============================================================================
+
 
 def get_manuals(state: NOCAgentState) -> dict:
     """
@@ -113,9 +117,9 @@ def get_manuals(state: NOCAgentState) -> dict:
     Returns:
         Partial state dict with `retrieved_sops` populated.
     """
-    print("\n" + "="*65)
+    print("\n" + "=" * 65)
     print("📚  NODE 2: DOCUMENT RETRIEVER — Querying Vector Database")
-    print("="*65)
+    print("=" * 65)
 
     # Build a rich semantic query combining alarm metadata with telemetry details
     telemetry = state.get("live_telemetry", {})
@@ -154,6 +158,7 @@ def get_manuals(state: NOCAgentState) -> dict:
 # NODE 3: The Brain — Resolution Drafter
 # =============================================================================
 
+
 def draft_fix(state: NOCAgentState) -> dict:
     """
     Node 3 — The Brain: Synthesizes telemetry + SOPs into a resolution ticket.
@@ -176,9 +181,9 @@ def draft_fix(state: NOCAgentState) -> dict:
     Returns:
         Partial state dict with `proposed_resolution` populated.
     """
-    print("\n" + "="*65)
+    print("\n" + "=" * 65)
     print("🧠  NODE 3: THE BRAIN — Drafting Resolution Ticket (GPT-4o)")
-    print("="*65)
+    print("=" * 65)
 
     iteration = state.get("iteration_count", 0)
     if iteration > 0:
@@ -239,8 +244,8 @@ RETRIEVED STANDARD OPERATING PROCEDURES:
 {sops_str}
 
 ORIGINAL ALARM:
-Alarm ID: {state['alarm_id']}
-Error: {state['error_message']}
+Alarm ID: {state["alarm_id"]}
+Error: {state["error_message"]}
 """
 
     # If in revision mode, append the previous draft and critic's feedback
@@ -248,10 +253,10 @@ Error: {state['error_message']}
         human_content += f"""
 
 PREVIOUS DRAFT (FAILED SAFETY AUDIT — DO NOT REUSE):
-{state['proposed_resolution']}
+{state["proposed_resolution"]}
 
 CRITIC'S AUDIT FEEDBACK (MUST ADDRESS IN THIS REVISION):
-{state['safety_feedback']}
+{state["safety_feedback"]}
 
 INSTRUCTION: Revise the ticket to strictly comply with the SOPs.
 Remove any step flagged by the critic. Add missing safety constraints.
@@ -279,6 +284,7 @@ Remove any step flagged by the critic. Add missing safety constraints.
 # NODE 4: The Critic — Safety Checker
 # =============================================================================
 
+
 def safety_check(state: NOCAgentState) -> dict:
     """
     Node 4 — The Critic: Audits the resolution ticket for SOP compliance and safety.
@@ -303,9 +309,9 @@ def safety_check(state: NOCAgentState) -> dict:
     Returns:
         Partial state dict with `is_safe_to_execute` and `safety_feedback` populated.
     """
-    print("\n" + "="*65)
+    print("\n" + "=" * 65)
     print("🛡️   NODE 4: THE CRITIC — Running Safety & SOP Compliance Audit")
-    print("="*65)
+    print("=" * 65)
 
     # Initialize a separate LLM instance for the critic
     # Using gpt-4o with structured output for deterministic JSON response

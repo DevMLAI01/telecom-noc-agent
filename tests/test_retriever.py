@@ -15,18 +15,21 @@ class TestCosineSimilarity:
     def test_identical_vectors_score_one(self):
         """Identical vectors should yield similarity of 1.0."""
         from src.retriever import cosine_similarity
+
         v = np.array([1.0, 2.0, 3.0])
         assert abs(cosine_similarity(v, v) - 1.0) < 1e-6
 
     def test_orthogonal_vectors_score_zero(self):
         """Perpendicular vectors should yield similarity of 0.0."""
         from src.retriever import cosine_similarity
+
         v1 = np.array([1.0, 0.0, 0.0])
         v2 = np.array([0.0, 1.0, 0.0])
         assert abs(cosine_similarity(v1, v2)) < 1e-6
 
     def test_opposite_vectors_score_minus_one(self):
         from src.retriever import cosine_similarity
+
         v1 = np.array([1.0, 0.0])
         v2 = np.array([-1.0, 0.0])
         assert abs(cosine_similarity(v1, v2) - (-1.0)) < 1e-6
@@ -34,6 +37,7 @@ class TestCosineSimilarity:
     def test_zero_vector_returns_zero(self):
         """Zero vector should not cause a divide-by-zero crash."""
         from src.retriever import cosine_similarity
+
         v1 = np.array([0.0, 0.0, 0.0])
         v2 = np.array([1.0, 2.0, 3.0])
         result = cosine_similarity(v1, v2)
@@ -53,9 +57,10 @@ class TestSOPRetriever:
 
         query_embedding = self._make_embedding(seed=1)
 
-        with patch("src.retriever.get_query_embedding", return_value=query_embedding), \
-             patch("src.retriever.get_all_sop_embeddings") as mock_sop_embs:
-
+        with (
+            patch("src.retriever.get_query_embedding", return_value=query_embedding),
+            patch("src.retriever.get_all_sop_embeddings") as mock_sop_embs,
+        ):
             mock_sop_embs.return_value = [
                 {"sop_id": "SOP-001", "embedding": self._make_embedding(10), "content": "DOCSIS guide"},
                 {"sop_id": "SOP-002", "embedding": self._make_embedding(20), "content": "GPON guide"},
@@ -80,8 +85,10 @@ class TestSOPRetriever:
             {"sop_id": "SOP-003", "embedding": query_emb, "content": "exact match"},
         ]
 
-        with patch("src.retriever.get_query_embedding", return_value=query_emb), \
-             patch("src.retriever.get_all_sop_embeddings", return_value=sop_embeddings):
+        with (
+            patch("src.retriever.get_query_embedding", return_value=query_emb),
+            patch("src.retriever.get_all_sop_embeddings", return_value=sop_embeddings),
+        ):
             results = retrieve_relevant_sops(query_text="any query", top_k=3)
 
         assert results[0]["sop_id"] == "SOP-003", "Most similar SOP should rank first"
@@ -91,8 +98,10 @@ class TestSOPRetriever:
         from src.retriever import retrieve_relevant_sops
 
         emb = self._make_embedding(seed=5)
-        with patch("src.retriever.get_query_embedding", return_value=emb) as mock_embed, \
-             patch("src.retriever.get_all_sop_embeddings", return_value=[]):
+        with (
+            patch("src.retriever.get_query_embedding", return_value=emb) as mock_embed,
+            patch("src.retriever.get_all_sop_embeddings", return_value=[]),
+        ):
             retrieve_relevant_sops("BGP flapping", top_k=3)
             retrieve_relevant_sops("BGP flapping", top_k=3)
 
@@ -104,8 +113,10 @@ class TestSOPRetriever:
         """If no SOPs exist, should return [] gracefully."""
         from src.retriever import retrieve_relevant_sops
 
-        with patch("src.retriever.get_query_embedding", return_value=self._make_embedding(1)), \
-             patch("src.retriever.get_all_sop_embeddings", return_value=[]):
+        with (
+            patch("src.retriever.get_query_embedding", return_value=self._make_embedding(1)),
+            patch("src.retriever.get_all_sop_embeddings", return_value=[]),
+        ):
             results = retrieve_relevant_sops("some alarm", top_k=3)
 
         assert results == []

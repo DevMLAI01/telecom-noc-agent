@@ -27,17 +27,18 @@ def _load_json_with_decimals(path: str):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f, parse_float=Decimal)
 
+
 # ---------------------------------------------------------------------------
 # Configuration — reads from environment with sensible defaults
 # ---------------------------------------------------------------------------
-AWS_REGION           = os.getenv("AWS_REGION", "us-east-1")
-SOPS_TABLE_NAME      = os.getenv("DYNAMODB_SOPS_TABLE", "telecom-noc-sops")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+SOPS_TABLE_NAME = os.getenv("DYNAMODB_SOPS_TABLE", "telecom-noc-sops")
 TELEMETRY_TABLE_NAME = os.getenv("DYNAMODB_TELEMETRY_TABLE", "telecom-noc-telemetry")
 
 # Resolve paths relative to the project root (one level up from scripts/)
-SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-SOPS_FILE    = os.path.join(PROJECT_ROOT, "data", "sops.json")
+SOPS_FILE = os.path.join(PROJECT_ROOT, "data", "sops.json")
 TELEMETRY_FILE = os.path.join(PROJECT_ROOT, "data", "mock_telemetry.json")
 
 
@@ -75,10 +76,10 @@ def seed_sops(dynamodb_resource, table_name: str) -> None:
     with table.batch_writer() as batch:
         for sop in sops:
             item = {
-                "sop_id":    sop["id"],
-                "content":   sop["content"],
-                "source":    sop["metadata"]["source"],
-                "category":  sop["metadata"]["category"],
+                "sop_id": sop["id"],
+                "content": sop["content"],
+                "source": sop["metadata"]["source"],
+                "category": sop["metadata"]["category"],
                 "alarm_type": sop["metadata"]["alarm_type"],
             }
             batch.put_item(Item=item)
@@ -98,7 +99,7 @@ def seed_telemetry(dynamodb_resource, table_name: str) -> None:
     with table.batch_writer() as batch:
         for alarm_id, metrics in telemetry.items():
             item = {
-                "alarm_id":  alarm_id,
+                "alarm_id": alarm_id,
                 "telemetry": metrics,
             }
             batch.put_item(Item=item)
@@ -108,12 +109,12 @@ def seed_telemetry(dynamodb_resource, table_name: str) -> None:
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  TELECOM NOC — DynamoDB Seed Script")
     print(f"  Region : {AWS_REGION}")
     print(f"  SOPs   : {SOPS_TABLE_NAME}")
     print(f"  Telemetry: {TELEMETRY_TABLE_NAME}")
-    print("="*60)
+    print("=" * 60)
 
     # Validate data files exist
     for path in [SOPS_FILE, TELEMETRY_FILE]:
@@ -122,7 +123,7 @@ def main():
             sys.exit(1)
 
     # Initialize AWS clients
-    dynamodb_client   = boto3.client("dynamodb", region_name=AWS_REGION)
+    dynamodb_client = boto3.client("dynamodb", region_name=AWS_REGION)
     dynamodb_resource = boto3.resource("dynamodb", region_name=AWS_REGION)
 
     # Step 1: Create tables
@@ -135,10 +136,10 @@ def main():
     seed_sops(dynamodb_resource, SOPS_TABLE_NAME)
     seed_telemetry(dynamodb_resource, TELEMETRY_TABLE_NAME)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  Seed complete!")
     print(f"  View tables: https://console.aws.amazon.com/dynamodb/home?region={AWS_REGION}#tables")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

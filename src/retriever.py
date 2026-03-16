@@ -26,15 +26,15 @@ from langchain_openai import OpenAIEmbeddings
 # ---------------------------------------------------------------------------
 # Configuration — read from environment variables
 # ---------------------------------------------------------------------------
-AWS_REGION        = os.getenv("AWS_REGION", "us-east-1")
-SOPS_TABLE_NAME   = os.getenv("DYNAMODB_SOPS_TABLE", "telecom-noc-sops")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+SOPS_TABLE_NAME = os.getenv("DYNAMODB_SOPS_TABLE", "telecom-noc-sops")
 
 # ---------------------------------------------------------------------------
 # Module-level caches — populated once per Lambda container lifecycle.
 # On warm invocations these are already populated, so DynamoDB and OpenAI
 # are NOT called again, keeping latency and cost minimal.
 # ---------------------------------------------------------------------------
-_sop_documents: list[dict] | None = None   # Raw SOP items from DynamoDB
+_sop_documents: list[dict] | None = None  # Raw SOP items from DynamoDB
 _sop_embeddings: np.ndarray | None = None  # Shape: (num_sops, embedding_dim)
 
 
@@ -121,7 +121,7 @@ def _cosine_similarity(query_vec: np.ndarray, doc_matrix: np.ndarray) -> np.ndar
         1-D numpy array of cosine similarity scores, shape (num_docs,)
     """
     query_norm = query_vec / (np.linalg.norm(query_vec) + 1e-10)
-    doc_norms  = doc_matrix / (np.linalg.norm(doc_matrix, axis=1, keepdims=True) + 1e-10)
+    doc_norms = doc_matrix / (np.linalg.norm(doc_matrix, axis=1, keepdims=True) + 1e-10)
     return doc_norms @ query_norm
 
 

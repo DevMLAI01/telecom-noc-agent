@@ -64,26 +64,26 @@ def route_after_safety_check(state: NOCAgentState) -> str:
     iteration_count = state.get("iteration_count", 0)
 
     if is_safe:
-        print("\n" + "="*65)
+        print("\n" + "=" * 65)
         print("✅  ROUTING DECISION: Ticket is SAFE — Routing to END")
         print(f"    Completed in {iteration_count + 1} iteration(s).")
-        print("="*65)
+        print("=" * 65)
         return END
 
     elif iteration_count >= MAX_ITERATIONS:
         # Safety guard: stop infinite loops, output best-effort ticket with warning
-        print("\n" + "="*65)
+        print("\n" + "=" * 65)
         print(f"⚠️   ROUTING DECISION: Max iterations ({MAX_ITERATIONS}) reached.")
         print("    Routing to END with unresolved safety concerns flagged.")
-        print("="*65)
+        print("=" * 65)
         return END
 
     else:
         # Increment the iteration counter and loop back to re-fetch SOPs + re-draft
-        print("\n" + "="*65)
+        print("\n" + "=" * 65)
         print(f"🔄  ROUTING DECISION: Ticket FAILED safety audit.")
         print(f"    Looping back to get_manuals (Iteration {iteration_count + 1}/{MAX_ITERATIONS})")
-        print("="*65)
+        print("=" * 65)
         return "get_manuals"
 
 
@@ -129,20 +129,20 @@ def build_graph() -> StateGraph:
     # Register Nodes
     # Each node is a Python callable that takes and returns state fields.
     # -------------------------------------------------------------------------
-    graph.add_node("check_network", check_network)       # Node 1: Telemetry
-    graph.add_node("get_manuals", get_manuals)           # Node 2: RAG Retrieval
-    graph.add_node("draft_fix", draft_fix)               # Node 3: LLM Drafting
-    graph.add_node("safety_check", safety_check)         # Node 4: LLM Critic
+    graph.add_node("check_network", check_network)  # Node 1: Telemetry
+    graph.add_node("get_manuals", get_manuals)  # Node 2: RAG Retrieval
+    graph.add_node("draft_fix", draft_fix)  # Node 3: LLM Drafting
+    graph.add_node("safety_check", safety_check)  # Node 4: LLM Critic
     graph.add_node("increment_iteration", increment_iteration)  # Counter
 
     # -------------------------------------------------------------------------
     # Define Fixed Edges (Linear Pipeline)
     # These transitions always happen regardless of state values.
     # -------------------------------------------------------------------------
-    graph.add_edge(START, "check_network")           # Entry point
-    graph.add_edge("check_network", "get_manuals")   # 1 → 2
-    graph.add_edge("get_manuals", "draft_fix")       # 2 → 3
-    graph.add_edge("draft_fix", "safety_check")      # 3 → 4
+    graph.add_edge(START, "check_network")  # Entry point
+    graph.add_edge("check_network", "get_manuals")  # 1 → 2
+    graph.add_edge("get_manuals", "draft_fix")  # 2 → 3
+    graph.add_edge("draft_fix", "safety_check")  # 3 → 4
 
     # -------------------------------------------------------------------------
     # Define Conditional Edge (The Self-Correction Loop)
@@ -150,12 +150,12 @@ def build_graph() -> StateGraph:
     # The `path_map` maps return strings to node names (or END sentinel).
     # -------------------------------------------------------------------------
     graph.add_conditional_edges(
-        source="safety_check",           # Evaluate after this node runs
-        path=route_after_safety_check,   # This function decides where to go
+        source="safety_check",  # Evaluate after this node runs
+        path=route_after_safety_check,  # This function decides where to go
         path_map={
-            END: END,                              # Safe → terminate
+            END: END,  # Safe → terminate
             "get_manuals": "increment_iteration",  # Unsafe → increment first
-        }
+        },
     )
 
     # After incrementing the counter, loop back to re-fetch SOPs

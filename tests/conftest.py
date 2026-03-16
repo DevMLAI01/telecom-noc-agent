@@ -85,6 +85,7 @@ SAMPLE_SOPS = [
 
 # ── DynamoDB mock fixtures ─────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="function")
 def aws_credentials():
     """Ensure moto intercepts all AWS calls."""
@@ -126,6 +127,7 @@ def dynamodb_tables(aws_credentials):
 
 # ── OpenAI mock fixtures ────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def mock_embedding_response():
     """Return a deterministic fake embedding vector (1536-dim)."""
@@ -139,8 +141,7 @@ def mock_embedding_response():
 @pytest.fixture
 def mock_openai_client(mock_embedding_response):
     """Patch the OpenAI client to avoid real API calls."""
-    with patch("src.retriever.openai_client") as mock_client, \
-         patch("src.nodes.llm") as mock_llm:
+    with patch("src.retriever.openai_client") as mock_client, patch("src.nodes.llm") as mock_llm:
         mock_client.embeddings.create.return_value = mock_embedding_response
         mock_llm.invoke.return_value = MagicMock(
             content="Resolution ticket: Check downstream power levels and SNR. Apply attenuator adjustment per SOP-001.",

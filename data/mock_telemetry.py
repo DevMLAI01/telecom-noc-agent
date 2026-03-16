@@ -37,10 +37,11 @@ def _decimals_to_native(obj):
         return [_decimals_to_native(i) for i in obj]
     return obj
 
+
 # ---------------------------------------------------------------------------
 # Configuration — read from environment variables
 # ---------------------------------------------------------------------------
-AWS_REGION           = os.getenv("AWS_REGION", "us-east-1")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 TELEMETRY_TABLE_NAME = os.getenv("DYNAMODB_TELEMETRY_TABLE", "telecom-noc-telemetry")
 
 # ---------------------------------------------------------------------------

@@ -63,7 +63,9 @@ def query_nms_for_alarm_telemetry(alarm_id: str) -> dict:
         print(f"   [Tool] WARNING: {telemetry_data['error']}")
     else:
         print(f"   [Tool] Telemetry retrieved for device: {telemetry_data.get('device', 'Unknown')}")
-        print(f"   [Tool] Severity: {telemetry_data.get('severity', 'Unknown')} | "
-              f"Error Type: {telemetry_data.get('error_type', 'Unknown')}")
+        print(
+            f"   [Tool] Severity: {telemetry_data.get('severity', 'Unknown')} | "
+            f"Error Type: {telemetry_data.get('error_type', 'Unknown')}"
+        )
 
     return telemetry_data

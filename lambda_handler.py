@@ -44,8 +44,7 @@ load_dotenv()
 # Validate API key presence before graph import triggers model instantiation
 if not os.getenv("OPENAI_API_KEY"):
     raise RuntimeError(
-        "OPENAI_API_KEY is not set. "
-        "Configure it as a Lambda environment variable or in .env for local testing."
+        "OPENAI_API_KEY is not set. Configure it as a Lambda environment variable or in .env for local testing."
     )
 
 from src.graph import build_graph
@@ -76,20 +75,20 @@ def handler(event: dict, context) -> dict:
     """
     start_time = datetime.now()
 
-    alarm_id      = event.get("alarm_id", "ALARM-001")
+    alarm_id = event.get("alarm_id", "ALARM-001")
     error_message = event.get("error_message", "")
 
     print(f"[Lambda] Received alarm: {alarm_id}")
 
     initial_state: NOCAgentState = {
-        "alarm_id":            alarm_id,
-        "error_message":       error_message,
-        "live_telemetry":      {},
-        "retrieved_sops":      [],
+        "alarm_id": alarm_id,
+        "error_message": error_message,
+        "live_telemetry": {},
+        "retrieved_sops": [],
         "proposed_resolution": "",
-        "is_safe_to_execute":  None,
-        "safety_feedback":     None,
-        "iteration_count":     0,
+        "is_safe_to_execute": None,
+        "safety_feedback": None,
+        "iteration_count": 0,
     }
 
     try:
@@ -98,25 +97,31 @@ def handler(event: dict, context) -> dict:
         print(f"[Lambda] ERROR during graph execution: {e}")
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "error":    str(e),
-                "alarm_id": alarm_id,
-            }),
+            "body": json.dumps(
+                {
+                    "error": str(e),
+                    "alarm_id": alarm_id,
+                }
+            ),
         }
 
     elapsed = (datetime.now() - start_time).total_seconds()
-    print(f"[Lambda] Workflow completed in {elapsed:.2f}s | "
-          f"safe={final_state.get('is_safe_to_execute')} | "
-          f"iterations={final_state.get('iteration_count', 0) + 1}")
+    print(
+        f"[Lambda] Workflow completed in {elapsed:.2f}s | "
+        f"safe={final_state.get('is_safe_to_execute')} | "
+        f"iterations={final_state.get('iteration_count', 0) + 1}"
+    )
 
     return {
         "statusCode": 200,
-        "body": json.dumps({
-            "alarm_id":            final_state.get("alarm_id"),
-            "is_safe_to_execute":  final_state.get("is_safe_to_execute"),
-            "safety_feedback":     final_state.get("safety_feedback"),
-            "proposed_resolution": final_state.get("proposed_resolution"),
-            "iteration_count":     final_state.get("iteration_count", 0) + 1,
-            "elapsed_seconds":     round(elapsed, 2),
-        }),
+        "body": json.dumps(
+            {
+                "alarm_id": final_state.get("alarm_id"),
+                "is_safe_to_execute": final_state.get("is_safe_to_execute"),
+                "safety_feedback": final_state.get("safety_feedback"),
+                "proposed_resolution": final_state.get("proposed_resolution"),
+                "iteration_count": final_state.get("iteration_count", 0) + 1,
+                "elapsed_seconds": round(elapsed, 2),
+            }
+        ),
     }

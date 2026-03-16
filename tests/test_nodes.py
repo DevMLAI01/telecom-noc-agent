@@ -10,8 +10,16 @@ from unittest.mock import MagicMock, patch
 
 # ── Shared state builder ────────────────────────────────────────────────────
 
-def make_state(alarm_id="ALARM-001", telemetry=None, sops=None,
-               resolution_ticket=None, is_safe=False, iterations=0, safety_feedback=""):
+
+def make_state(
+    alarm_id="ALARM-001",
+    telemetry=None,
+    sops=None,
+    resolution_ticket=None,
+    is_safe=False,
+    iterations=0,
+    safety_feedback="",
+):
     return {
         "alarm_id": alarm_id,
         "telemetry": telemetry or {"device_id": "CMTS-NYC-01", "alarm_type": "DOCSIS_TIMEOUT"},
@@ -25,10 +33,11 @@ def make_state(alarm_id="ALARM-001", telemetry=None, sops=None,
 
 # ── check_network node ──────────────────────────────────────────────────────
 
-class TestCheckNetworkNode:
 
+class TestCheckNetworkNode:
     def test_returns_telemetry_for_known_alarm(self, dynamodb_tables):
         from src.nodes import check_network
+
         state = make_state(alarm_id="ALARM-001")
         with patch("src.nodes.boto3_resource") as mock_db:
             mock_table = MagicMock()
@@ -43,6 +52,7 @@ class TestCheckNetworkNode:
 
     def test_returns_empty_telemetry_for_unknown_alarm(self):
         from src.nodes import check_network
+
         state = make_state(alarm_id="ALARM-UNKNOWN")
         with patch("src.nodes.boto3_resource") as mock_db:
             mock_table = MagicMock()
@@ -55,10 +65,11 @@ class TestCheckNetworkNode:
 
 # ── get_manuals node ────────────────────────────────────────────────────────
 
-class TestGetManualsNode:
 
+class TestGetManualsNode:
     def test_retrieves_sops_based_on_telemetry(self):
         from src.nodes import get_manuals
+
         state = make_state(telemetry={"alarm_type": "DOCSIS_TIMEOUT", "device_id": "CMTS-NYC-01"})
 
         fake_sops = [
@@ -74,10 +85,9 @@ class TestGetManualsNode:
     def test_safety_feedback_included_in_query_on_retry(self):
         """On retry (iterations > 0), safety_feedback should enrich the retrieval query."""
         from src.nodes import get_manuals
+
         state = make_state(
-            telemetry={"alarm_type": "BGP_FLAPPING"},
-            iterations=1,
-            safety_feedback="Missing rollback procedure."
+            telemetry={"alarm_type": "BGP_FLAPPING"}, iterations=1, safety_feedback="Missing rollback procedure."
         )
         with patch("src.nodes.retrieve_relevant_sops", return_value=[]) as mock_retrieve:
             get_manuals(state)
@@ -89,18 +99,17 @@ class TestGetManualsNode:
 
 # ── draft_fix node ──────────────────────────────────────────────────────────
 
-class TestDraftFixNode:
 
+class TestDraftFixNode:
     def test_produces_resolution_ticket_string(self):
         from src.nodes import draft_fix
+
         state = make_state(
             telemetry={"alarm_type": "DOCSIS_TIMEOUT", "device_id": "CMTS-NYC-01"},
             sops=[{"sop_id": "SOP-001", "content": "Check downstream power levels."}],
         )
         with patch("src.nodes.llm") as mock_llm:
-            mock_llm.invoke.return_value = MagicMock(
-                content="Resolution: Adjust attenuator per SOP-001."
-            )
+            mock_llm.invoke.return_value = MagicMock(content="Resolution: Adjust attenuator per SOP-001.")
             result = draft_fix(state)
 
         assert isinstance(result["resolution_ticket"], str)
@@ -108,6 +117,7 @@ class TestDraftFixNode:
 
     def test_ticket_contains_device_reference(self):
         from src.nodes import draft_fix
+
         state = make_state(
             telemetry={"alarm_type": "BGP_FLAPPING", "device_id": "ROUTER-CHI-03"},
             sops=[{"sop_id": "SOP-003", "content": "BGP troubleshooting guide."}],
@@ -123,10 +133,11 @@ class TestDraftFixNode:
 
 # ── safety_check node ───────────────────────────────────────────────────────
 
-class TestSafetyCheckNode:
 
+class TestSafetyCheckNode:
     def test_passes_safe_ticket(self, mock_safety_pass):
         from src.nodes import safety_check
+
         state = make_state(
             resolution_ticket="Adjust attenuator. Includes rollback: restore previous setting.",
             iterations=0,
@@ -139,6 +150,7 @@ class TestSafetyCheckNode:
 
     def test_fails_unsafe_ticket_and_captures_feedback(self, mock_safety_fail):
         from src.nodes import safety_check
+
         state = make_state(
             resolution_ticket="Reboot the device.",
             iterations=0,
@@ -152,6 +164,7 @@ class TestSafetyCheckNode:
 
     def test_increments_iterations_on_failure(self, mock_safety_fail):
         from src.nodes import safety_check
+
         state = make_state(resolution_ticket="Reboot immediately.", iterations=1)
         with patch("src.nodes.llm") as mock_llm:
             mock_llm.with_structured_output.return_value.invoke.return_value = mock_safety_fail
@@ -162,16 +175,18 @@ class TestSafetyCheckNode:
 
 # ── Graph routing logic ─────────────────────────────────────────────────────
 
-class TestGraphRouting:
 
+class TestGraphRouting:
     def test_routes_to_manuals_when_unsafe_and_under_limit(self):
         from src.graph import route_after_safety
+
         state = make_state(is_safe=False, iterations=1)
         next_node = route_after_safety(state)
         assert next_node == "get_manuals"
 
     def test_routes_to_end_when_safe(self):
         from src.graph import route_after_safety
+
         state = make_state(is_safe=True, iterations=0)
         next_node = route_after_safety(state)
         assert next_node == "__end__"
@@ -179,6 +194,7 @@ class TestGraphRouting:
     def test_routes_to_end_when_max_iterations_reached(self):
         """After 3 failed attempts, should exit rather than loop infinitely."""
         from src.graph import route_after_safety
+
         state = make_state(is_safe=False, iterations=3)
         next_node = route_after_safety(state)
         assert next_node == "__end__"
