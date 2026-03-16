@@ -1,5 +1,13 @@
 # Autonomous Telecom NOC Resolution Agent
 
+<div align="center">
+
+| ⚡ Resolution Time | 🔁 Self-Correction | 🧪 Test Coverage | 🚀 Deployment |
+|:---:|:---:|:---:|:---:|
+| 45–90 min → **<60s** | Up to **3 retries** | **70%** covered | AWS Lambda · API Gateway |
+
+</div>
+
 An enterprise-grade, production-deployed Agentic RAG system built with **LangGraph**, **GPT-4o**, and **AWS** that autonomously investigates network alarms, retrieves vendor SOPs, drafts incident resolution tickets, and self-evaluates for safety compliance — deployed as a serverless microservice on AWS Lambda and publicly accessible via API Gateway.
 
 ---
@@ -160,6 +168,15 @@ START → check_network → get_manuals → draft_fix → safety_check
                                                          │
                                                         END
 ```
+
+---
+
+## 💼 Why This Matters
+NOC engineers manually spend 45–90 minutes per incident searching vendor
+documentation and drafting resolution tickets. This agent is designed to
+compress that entire workflow to under 60 seconds by combining semantic
+SOP retrieval with a self-auditing critic loop — reducing human error in
+high-pressure network operations environments.
 
 ---
 
