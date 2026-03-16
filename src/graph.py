@@ -62,8 +62,8 @@ def route_after_safety_check(state: NOCAgentState) -> str:
         A string matching one of the node names defined in the graph,
         or the END sentinel value from LangGraph.
     """
-    is_safe = state.get("is_safe_to_execute", False)
-    iteration_count = state.get("iteration_count", 0)
+    is_safe = state.get("is_safe", False)
+    iteration_count = state.get("iterations", 0)
 
     if is_safe:
         print("\n" + "=" * 65)
@@ -89,6 +89,9 @@ def route_after_safety_check(state: NOCAgentState) -> str:
         return "get_manuals"
 
 
+route_after_safety = route_after_safety_check
+
+
 def increment_iteration(state: NOCAgentState) -> dict:
     """
     Helper pass-through node that increments the iteration counter.
@@ -105,8 +108,8 @@ def increment_iteration(state: NOCAgentState) -> dict:
     Returns:
         Partial state dict incrementing `iteration_count` by 1.
     """
-    current_count = state.get("iteration_count", 0)
-    return {"iteration_count": current_count + 1}
+    current_count = state.get("iterations", 0)
+    return {"iterations": current_count + 1}
 
 
 def build_graph() -> Any:
@@ -135,7 +138,6 @@ def build_graph() -> Any:
     graph.add_node("get_manuals", get_manuals)  # Node 2: RAG Retrieval
     graph.add_node("draft_fix", draft_fix)  # Node 3: LLM Drafting
     graph.add_node("safety_check", safety_check)  # Node 4: LLM Critic
-    graph.add_node("increment_iteration", increment_iteration)  # Counter
 
     # -------------------------------------------------------------------------
     # Define Fixed Edges (Linear Pipeline)
@@ -156,12 +158,9 @@ def build_graph() -> Any:
         path=route_after_safety_check,  # This function decides where to go
         path_map={
             END: END,  # Safe → terminate
-            "get_manuals": "increment_iteration",  # Unsafe → increment first
+            "get_manuals": "get_manuals",  # Unsafe → loop back directly
         },
     )
-
-    # After incrementing the counter, loop back to re-fetch SOPs
-    graph.add_edge("increment_iteration", "get_manuals")
 
     # -------------------------------------------------------------------------
     # Compile the Graph

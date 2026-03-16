@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 # ── Pytest configuration ─────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -78,6 +79,7 @@ omit = [
     "scripts/*",
     "data/*",
     "*/__init__.py",
+    "src/tools.py",   # LangChain tool wrapper — superseded by direct boto3 in check_network
 ]
 
 [tool.coverage.report]

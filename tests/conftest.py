@@ -6,6 +6,7 @@ and fake OpenAI embedding/completion responses.
 
 import json
 import os
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -42,8 +43,8 @@ SAMPLE_ALARMS = {
         "alarm_type": "GPON_POWER_LOSS",
         "severity": "HIGH",
         "description": "GPON optical power below threshold on PON port 3",
-        "rx_power_dbm": -29.5,
-        "threshold_dbm": -27.0,
+        "rx_power_dbm": Decimal("-29.5"),
+        "threshold_dbm": Decimal("-27.0"),
         "first_seen": "2024-01-15T09:10:00Z",
     },
     "ALARM-003": {

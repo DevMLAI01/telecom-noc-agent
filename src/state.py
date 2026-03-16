@@ -1,75 +1,46 @@
-# =============================================================================
-# src/state.py
-# =============================================================================
-# Purpose: Defines the central "nervous system" of the LangGraph agent —
-# the NOCAgentState TypedDict.
-#
-# In LangGraph, the State is the single source of truth that flows through
-# every node in the graph. Each node reads from and writes to this shared
-# state object. Think of it as the "incident ticket" that gets enriched
-# as it passes through each stage of the NOC triage workflow.
-# =============================================================================
-
 from typing import TypedDict, Optional
+from pydantic import BaseModel, Field
+
+
+class SafetyAuditResult(BaseModel):
+    """Structured output schema for the NOC Safety Critic (Node 4)."""
+
+    is_safe: bool = Field(
+        description=(
+            "True if EVERY step in the proposed resolution is explicitly documented "
+            "in the provided SOPs and follows all stated safety constraints. "
+            "False if ANY step deviates from, contradicts, or is absent from the SOPs."
+        )
+    )
+    feedback: str = Field(
+        description=(
+            "Detailed explanation of the audit finding. If is_safe=True, briefly confirm "
+            "SOP compliance. If is_safe=False, quote the specific non-compliant step(s) "
+            "and explain which SOP rule is violated. Be precise and actionable."
+        )
+    )
 
 
 class NOCAgentState(TypedDict):
     """
     Represents the complete state of a single NOC incident resolution workflow.
 
-    This TypedDict is passed between every node in the LangGraph state machine.
-    Each node is responsible for populating specific fields as the investigation
-    progresses from alarm triage through to final resolution ticket generation.
-
     Fields:
-        alarm_id (str):
-            The unique identifier of the incoming network alarm.
-            Example: "ALARM-001"
-            Set by: Initial invocation (main.py)
-
-        error_message (str):
-            A human-readable description of the network fault.
-            Example: "DOCSIS T3 Timeout flood on Arris E6000 CMTS upstream"
-            Set by: Initial invocation (main.py)
-
-        live_telemetry (dict):
-            Real-time network vitals fetched from the mock NMS.
-            Contains device metrics like SNR, Rx power, error rates, etc.
-            Set by: Node 1 — check_network()
-
-        retrieved_sops (list[str]):
-            A list of relevant SOP (Standard Operating Procedure) text chunks
-            retrieved from the ChromaDB vector store via semantic search.
-            Set by: Node 2 — get_manuals()
-
-        proposed_resolution (str):
-            The full, step-by-step resolution ticket drafted by the AI brain.
-            This is the primary output artifact of the workflow.
-            Set by: Node 3 — draft_fix()
-
-        is_safe_to_execute (Optional[bool]):
-            Safety audit result from the AI critic.
-            True  → Ticket is SOP-compliant; route to END.
-            False → Ticket has unsafe steps; loop back for revision.
-            None  → Audit has not yet been performed (initial state).
-            Set by: Node 4 — safety_check()
-
-        safety_feedback (Optional[str]):
-            Detailed feedback from the critic node explaining WHY a ticket
-            failed the safety audit. Used to guide the revision loop.
-            Set by: Node 4 — safety_check()
-
-        iteration_count (int):
-            Tracks how many times the draft-and-review loop has executed.
-            Used to prevent infinite loops (hard cap at MAX_ITERATIONS).
-            Set by: Routing logic in graph.py
+        alarm_id:          Unique identifier of the incoming network alarm.
+        error_message:     Human-readable description of the network fault.
+        telemetry:         Real-time device metrics fetched from DynamoDB (Node 1).
+        sops:              Top-k SOP dicts retrieved via semantic search (Node 2).
+        resolution_ticket: Full resolution ticket drafted by the AI brain (Node 3).
+        is_safe:           Safety audit result from the AI critic (Node 4).
+        safety_feedback:   Critic feedback explaining why a ticket failed (Node 4).
+        iterations:        Loop counter — tracks self-correction attempts.
     """
 
     alarm_id: str
     error_message: str
-    live_telemetry: dict
-    retrieved_sops: list
-    proposed_resolution: str
-    is_safe_to_execute: Optional[bool]
+    telemetry: dict
+    sops: list
+    resolution_ticket: str
+    is_safe: Optional[bool]
     safety_feedback: Optional[str]
-    iteration_count: int
+    iterations: int
