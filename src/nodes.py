@@ -352,7 +352,7 @@ Perform your compliance audit and return your structured verdict:"""
     ]
 
     print("   Invoking GPT-4o critic with structured output...")
-    audit_result: SafetyAuditResult = structured_critic.invoke(messages)
+    audit_result: SafetyAuditResult = structured_critic.invoke(messages)  # type: ignore[assignment]
 
     print(f"\n   🔍 AUDIT RESULT: {'✅ SAFE' if audit_result.is_safe else '❌ UNSAFE'}")
     print(f"   Feedback: {audit_result.feedback[:200]}...")

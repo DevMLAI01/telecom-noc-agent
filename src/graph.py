@@ -31,6 +31,8 @@
 # the agent can revise its own output before committing to a final answer.
 # =============================================================================
 
+from typing import Any
+
 from langgraph.graph import StateGraph, START, END
 
 from src.state import NOCAgentState
@@ -107,7 +109,7 @@ def increment_iteration(state: NOCAgentState) -> dict:
     return {"iteration_count": current_count + 1}
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> Any:
     """
     Constructs and compiles the full LangGraph StateGraph for the NOC agent.
 
