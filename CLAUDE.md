@@ -37,7 +37,46 @@ Required environment variables (see `.env.example`):
 
 AWS credentials for local development: run `aws configure` or set `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`. Inside Lambda, the execution role provides credentials automatically.
 
-There is no test suite yet.
+## Testing
+
+```bash
+# Run all tests (coverage enforced at 70%)
+pytest
+
+# Run only unit tests (no external services required)
+pytest -m unit
+
+# Run a single test file
+pytest tests/test_retriever.py -v
+
+# Skip coverage for a quick run
+pytest --no-cov
+```
+
+Tests use `moto` to mock DynamoDB and `unittest.mock` for OpenAI. No real AWS or OpenAI calls are made. Fixtures are in `tests/conftest.py`.
+
+Test markers: `unit` (no external services), `integration` (moto/mock), `slow` (>5s).
+
+## Code Quality
+
+```bash
+# Lint and auto-fix
+ruff check --fix .
+
+# Format
+ruff format .
+
+# Type check (src/ only)
+mypy src/
+
+# Install pre-commit hooks (one-time)
+pre-commit install
+
+# Run all hooks manually
+pre-commit run --all-files
+```
+
+Pre-commit runs ruff, ruff-format, mypy, and security checks (detect-secrets, detect-private-key) on every commit.
 
 ## Seeding DynamoDB (one-time setup)
 

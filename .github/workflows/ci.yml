@@ -1,0 +1,91 @@
+name: CI Pipeline – Telecom NOC Agent
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install lint dependencies
+        run: |
+          pip install ruff mypy pydantic boto3 langgraph langchain-openai numpy
+
+      - name: Run Ruff linter
+        run: ruff check . --output-format=github
+
+      - name: Run Ruff formatter check
+        run: ruff format --check .
+
+      - name: Run mypy type checker
+        run: mypy src/ lambda_handler.py --ignore-missing-imports --no-strict-optional
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AWS_ACCESS_KEY_ID: "test-key"
+      AWS_SECRET_ACCESS_KEY: "test-secret"
+      AWS_DEFAULT_REGION: "us-east-1"
+      DYNAMODB_SOPS_TABLE: "noc-sops-test"
+      DYNAMODB_TELEMETRY_TABLE: "noc-telemetry-test"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest pytest-cov pytest-mock moto[dynamodb]
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=70 \
+            -v
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg OPENAI_API_KEY=placeholder \
+            -t telecom-noc-agent:ci-check \
+            .
+
+      - name: Verify image was created
+        run: docker image inspect telecom-noc-agent:ci-check

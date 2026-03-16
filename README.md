@@ -129,6 +129,9 @@ START → check_network → get_manuals → draft_fix → safety_check
 | **API** | AWS API Gateway (HTTP API) | POST /alarm, auto-deploy, CORS enabled |
 | **Validation** | Pydantic v2 | `SafetyAuditResult` enforces boolean `is_safe` + feedback |
 | **Runtime** | Python 3.12 | uv for local dependency management |
+| **Testing** | pytest + moto | DynamoDB mocked via moto; OpenAI mocked via unittest.mock |
+| **Linting / Formatting** | Ruff + mypy | Enforced via pre-commit hooks and CI |
+| **CI** | GitHub Actions | 3-stage pipeline: lint → test → docker build |
 
 ---
 
@@ -142,16 +145,25 @@ telecom-noc-agent/
 │   ├── retriever.py           # DynamoDB SOP loader + numpy cosine similarity RAG
 │   ├── nodes.py               # 4 LangGraph node functions + SafetyAuditResult model
 │   └── graph.py               # StateGraph compilation + conditional routing
+├── tests/
+│   ├── conftest.py            # Shared fixtures: moto DynamoDB, mock OpenAI, sample data
+│   ├── test_state.py          # NOCAgentState schema validation
+│   ├── test_retriever.py      # RAG: DynamoDB load + cosine similarity
+│   ├── test_nodes.py          # Node unit tests (check_network, draft_fix, safety_check)
+│   └── test_lambda_handler.py # Lambda handler integration tests
 ├── data/
 │   ├── sops.json              # Source of truth for 5 SOP documents (seeds DynamoDB)
 │   ├── mock_telemetry.json    # Source of truth for 4 alarm scenarios (seeds DynamoDB)
 │   └── mock_telemetry.py      # DynamoDB telemetry loader with module-level cache
 ├── scripts/
 │   └── seed_dynamodb.py       # One-time script: creates DynamoDB tables + uploads data
+├── .github/
+│   └── workflows/ci.yml       # CI pipeline: lint → test → docker build
 ├── lambda_handler.py          # AWS Lambda entry point (graph built once at module load)
 ├── Dockerfile                 # Lambda container — public.ecr.aws/lambda/python:3.12
-├── .dockerignore              # Excludes .venv, scripts, main.py, .env
-├── main.py                    # CLI entry point (local dev + testing)
+├── pyproject.toml             # pytest, ruff, mypy, and coverage configuration
+├── .pre-commit-config.yaml    # Pre-commit: ruff, mypy, detect-secrets, JSON/YAML checks
+├── main.py                    # CLI entry point (local dev)
 ├── requirements.txt           # Python dependencies (boto3, numpy, langgraph, openai...)
 └── .env.example               # Environment variable template
 ```
@@ -186,6 +198,40 @@ Five realistic SOP documents are stored in the `telecom-noc-sops` DynamoDB table
 | SOP-003 | BGP Session Flap — Core Router Runbook | Internal NOC Runbook v2.8 |
 | SOP-004 | Interface Queue Congestion — QoS Runbook | Internal NOC Runbook v2.8 |
 | SOP-005 | NOC Escalation and Communication Protocol | NOC Operations Policy v5.0 |
+
+---
+
+## Testing & Code Quality
+
+### Running tests
+```bash
+pytest                   # all tests, coverage enforced at 70%
+pytest -m unit           # unit tests only (no external services)
+pytest --no-cov -v       # quick run without coverage
+```
+
+Tests use **moto** to mock DynamoDB and `unittest.mock` for OpenAI — no real API calls or AWS credentials needed. Test markers: `unit`, `integration`, `slow`.
+
+### Linting & formatting (Ruff)
+```bash
+ruff check --fix .       # lint and auto-fix
+ruff format .            # format
+mypy src/                # type check
+```
+
+### Pre-commit hooks
+```bash
+pre-commit install        # install hooks (one-time)
+pre-commit run --all-files
+```
+
+Hooks run ruff, ruff-format, mypy, and security scanners (detect-secrets, detect-private-key) on every commit.
+
+### CI Pipeline
+GitHub Actions runs three jobs in sequence on every push:
+1. **Lint & Type Check** — ruff + mypy
+2. **Unit & Integration Tests** — pytest with coverage report (≥70%)
+3. **Docker Build Check** — verifies the Lambda container builds successfully
 
 ---
 
