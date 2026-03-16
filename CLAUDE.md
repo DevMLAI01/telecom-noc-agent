@@ -151,38 +151,38 @@ START → check_network → get_manuals → draft_fix → safety_check
 
 The key architectural feature is the **critic loop** in [src/graph.py](src/graph.py):
 
-- `route_after_safety_check()` is a conditional edge function that reads `is_safe_to_execute` from state.
-- On failure, it routes to `increment_iteration` (a bookkeeping pass-through node) then back to `get_manuals`.
+- `route_after_safety_check()` (aliased as `route_after_safety`) is a conditional edge function that reads `is_safe` from state.
+- On failure, it routes directly back to `get_manuals` (no intermediate `increment_iteration` node — `safety_check` now increments `iterations` itself).
 - `MAX_ITERATIONS = 3` prevents infinite loops. After 3 attempts, the agent exits with a safety warning.
 - When looping back, `get_manuals` enriches its query with the critic's `safety_feedback` text for more targeted SOP retrieval.
 
 ## State Schema (`src/state.py`)
 
-`NOCAgentState` is the single source of truth. Key fields and which node owns them:
+`NOCAgentState` is the single source of truth. `SafetyAuditResult` (Pydantic) is also defined here (not in `nodes.py`). Key fields and which node owns them:
 
 | Field | Set by | Purpose |
 |-------|--------|---------|
 | `alarm_id`, `error_message` | `main.py` / `lambda_handler.py` (initial) | Input alarm context |
-| `live_telemetry` | Node 1 `check_network` | Device metrics from DynamoDB |
-| `retrieved_sops` | Node 2 `get_manuals` | Top-3 SOP chunks via numpy cosine similarity |
-| `proposed_resolution` | Node 3 `draft_fix` | Full resolution ticket text |
-| `is_safe_to_execute` | Node 4 `safety_check` | Drives routing decision |
+| `telemetry` | Node 1 `check_network` | Device metrics from DynamoDB (boto3 direct, no `@tool`) |
+| `sops` | Node 2 `get_manuals` | Top-3 SOP dicts via numpy cosine similarity |
+| `resolution_ticket` | Node 3 `draft_fix` | Full resolution ticket text |
+| `is_safe` | Node 4 `safety_check` | Drives routing decision |
 | `safety_feedback` | Node 4 `safety_check` | Fed back into revision loop query |
-| `iteration_count` | `increment_iteration` node | Loop guard |
+| `iterations` | Node 4 `safety_check` | Loop guard (incremented on failure, not a separate node) |
 
 ## LLM Usage
 
-Both LLM nodes instantiate `ChatOpenAI` independently each invocation:
-- **Node 3 (Brain)**: `gpt-4o`, `temperature=0.1` — drafts resolution ticket from telemetry + SOPs
-- **Node 4 (Critic)**: `gpt-4o`, `temperature=0.0` — audits with `.with_structured_output(SafetyAuditResult)`, where `SafetyAuditResult` is a Pydantic model in [src/nodes.py](src/nodes.py) that forces a boolean `is_safe` + `feedback` string. This structured output is what makes routing deterministic.
+A single module-level `llm = ChatOpenAI(model="gpt-4o", temperature=0.1)` is defined in `src/nodes.py` and shared across nodes (patchable in tests via `patch("src.nodes.llm")`):
+- **Node 3 (Brain)**: calls `llm.invoke(prompt)` — drafts resolution ticket from telemetry + SOPs
+- **Node 4 (Critic)**: calls `llm.with_structured_output(SafetyAuditResult).invoke(prompt)` at `temperature=0.0` — `SafetyAuditResult` is a Pydantic model in [src/state.py](src/state.py) that enforces a boolean `is_safe` + `feedback` string. This structured output is what makes routing deterministic.
 
 ## RAG — DynamoDB + Numpy (`src/retriever.py`)
 
 - SOPs are stored in DynamoDB (`telecom-noc-sops` table). No local vector database.
 - On Lambda cold start: all SOPs are loaded from DynamoDB and embedded with `text-embedding-3-small`.
 - Embeddings are cached in a module-level variable — warm invocations skip re-embedding.
-- `retrieve_sops(query, k=3)` computes cosine similarity in numpy and returns the top-k SOP strings.
-- Same public interface as the previous ChromaDB implementation — `src/nodes.py` is unchanged.
+- `retrieve_relevant_sops(query_text, top_k=3)` is the primary public function — returns top-k SOP dicts with `score`.
+- `retrieve_sops(query, k=3)` is a legacy alias returning plain content strings (used by `main.py`).
 - To add new SOPs: insert items into `data/sops.json` and re-run `scripts/seed_dynamodb.py`.
 
 ## Mock NMS — DynamoDB (`data/mock_telemetry.py`)
@@ -222,9 +222,11 @@ Lambda response format:
 ```json
 {
   "statusCode": 200,
-  "body": "{\"alarm_id\": \"ALARM-001\", \"is_safe_to_execute\": true, \"proposed_resolution\": \"...\", ...}"
+  "body": "{\"alarm_id\": \"ALARM-001\", \"is_safe\": true, \"resolution_ticket\": \"...\", \"iterations\": 1, ...}"
 }
 ```
+
+`lambda_handler` (also aliased as `handler`) parses the API Gateway `body` key, validates `alarm_id` (400 if missing), adds CORS headers on all responses, and builds the graph inside the handler (not at module load — ensures mocking works in tests).
 
 ## Key Extension Points
 

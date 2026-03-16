@@ -25,10 +25,10 @@ Try all four alarm scenarios:
 ```json
 {
   "alarm_id": "ALARM-001",
-  "is_safe_to_execute": true,
+  "is_safe": true,
   "safety_feedback": "The proposed resolution ticket is SAFE. All steps are directly traceable to the SOPs...",
-  "proposed_resolution": "INCIDENT RESOLUTION TICKET\n==========================\n...",
-  "iteration_count": 3,
+  "resolution_ticket": "INCIDENT RESOLUTION TICKET\n==========================\n...",
+  "iterations": 1,
   "elapsed_seconds": 19.38
 }
 ```
@@ -143,7 +143,7 @@ telecom-noc-agent/
 │   ├── state.py               # NOCAgentState TypedDict — single source of truth
 │   ├── tools.py               # @tool: query_nms_for_alarm_telemetry
 │   ├── retriever.py           # DynamoDB SOP loader + numpy cosine similarity RAG
-│   ├── nodes.py               # 4 LangGraph node functions + SafetyAuditResult model
+│   ├── nodes.py               # 4 LangGraph node functions
 │   └── graph.py               # StateGraph compilation + conditional routing
 ├── tests/
 │   ├── conftest.py            # Shared fixtures: moto DynamoDB, mock OpenAI, sample data
@@ -159,7 +159,7 @@ telecom-noc-agent/
 │   └── seed_dynamodb.py       # One-time script: creates DynamoDB tables + uploads data
 ├── .github/
 │   └── workflows/ci.yml       # CI pipeline: lint → test → docker build
-├── lambda_handler.py          # AWS Lambda entry point (graph built once at module load)
+├── lambda_handler.py          # AWS Lambda entry point (graph built per invocation; CORS + 400/500 handling)
 ├── Dockerfile                 # Lambda container — public.ecr.aws/lambda/python:3.12
 ├── pyproject.toml             # pytest, ruff, mypy, and coverage configuration
 ├── .pre-commit-config.yaml    # Pre-commit: ruff, mypy, detect-secrets, JSON/YAML checks
@@ -174,15 +174,15 @@ telecom-noc-agent/
 
 | Component | File | Responsibility |
 |-----------|------|---------------|
-| State Schema | `src/state.py` | TypedDict with all workflow fields |
-| NMS Tool | `src/tools.py` | LangChain `@tool` for telemetry lookup |
-| RAG Engine | `src/retriever.py` | DynamoDB scan + numpy cosine similarity |
-| Node 1 | `src/nodes.py:check_network` | Fetches live device telemetry via `@tool` |
-| Node 2 | `src/nodes.py:get_manuals` | Semantic SOP retrieval |
+| State Schema | `src/state.py` | `NOCAgentState` TypedDict + `SafetyAuditResult` Pydantic model |
+| NMS Tool | `src/tools.py` | LangChain `@tool` wrapper (used by `main.py`; nodes use boto3 directly) |
+| RAG Engine | `src/retriever.py` | DynamoDB scan + numpy cosine similarity; `retrieve_relevant_sops()` is primary API |
+| Node 1 | `src/nodes.py:check_network` | Fetches live device telemetry via boto3 directly |
+| Node 2 | `src/nodes.py:get_manuals` | Semantic SOP retrieval; enriches query with safety feedback on retry |
 | Node 3 | `src/nodes.py:draft_fix` | GPT-4o resolution ticket drafting |
-| Node 4 | `src/nodes.py:safety_check` | GPT-4o critic with structured Pydantic output |
+| Node 4 | `src/nodes.py:safety_check` | GPT-4o critic with structured Pydantic output; increments `iterations` on failure |
 | Graph | `src/graph.py` | LangGraph compilation + `MAX_ITERATIONS=3` routing |
-| Lambda Handler | `lambda_handler.py` | AWS Lambda entry point, graph cached at module load |
+| Lambda Handler | `lambda_handler.py` | API Gateway body parsing, `alarm_id` validation (400), CORS headers, 500 on error |
 | CLI Runner | `main.py` | Local development with 4 pre-built alarm scenarios |
 
 ---
