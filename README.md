@@ -47,6 +47,54 @@ This agent compresses that entire workflow to **under 60 seconds**, with built-i
 
 ---
 
+## 🏗️ Architecture
+
+The agent runs as a **4-node LangGraph state machine** deployed on AWS Lambda,
+resolving NOC alarms in under 60 seconds with a built-in self-correction loop.
+
+```mermaid
+flowchart TD
+    A([🌐 API Gateway\nHTTP POST /alarm]) --> B
+
+    B[λ AWS Lambda\nPython 3.12 · 1GB RAM]
+    B --> C
+
+    subgraph GRAPH [LangGraph State Machine]
+        direction TB
+        C[🔍 check_network\nFetch alarm telemetry\nfrom DynamoDB]
+        C --> D
+
+        D[📚 get_manuals\nRAG retrieval · cosine similarity\nOpenAI text-embedding-3-small]
+        D --> E
+
+        E[✍️ draft_fix\nGenerate resolution ticket\nGPT-4o · temp=0.1]
+        E --> F
+
+        F{🛡️ safety_check\nCritic audit\nGPT-4o · temp=0.0}
+    end
+
+    F -->|✅ Safe| G([📋 Resolution Ticket\nreturned to caller])
+    F -->|❌ Unsafe · iter < 3\nfeedback injected| D
+    F -->|❌ Max 3 iterations\nexit gracefully| G
+
+    subgraph AWS [AWS Infrastructure]
+        H[(DynamoDB\nSOPs Table)]
+        I[(DynamoDB\nTelemetry Table)]
+    end
+
+    C --- I
+    D --- H
+
+    style GRAPH fill:#1a1a2e,stroke:#4a9eff,color:#fff
+    style AWS fill:#1a2e1a,stroke:#4aff9e,color:#fff
+    style F fill:#2e1a1a,stroke:#ff4a4a,color:#fff
+    style G fill:#1a2e1a,stroke:#4aff9e,color:#fff
+```
+
+> ⚡ **Mean time to resolution: 45–90 min → under 60 seconds**
+
+---
+
 ## Cloud Architecture
 
 ```
